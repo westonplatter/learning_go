@@ -63,6 +63,10 @@ func Sqrt(x float64) float64 {
 	return z
 }
 
+type Vertex struct {
+	X, Y int
+}
+
 func main() {
 
 	// UT8 by default
@@ -128,4 +132,50 @@ func main() {
 
 	// build sqrt to show loops and functions
 	fmt.Println(Sqrt(2))
+
+	// instantiate a struct
+	fmt.Println(Vertex{1,2})
+
+	// struct values are mutable
+	v := Vertex{1,2}
+	v.X = 4
+	fmt.Println(v.X)
+
+	// struct pointers
+	// pointer arithmetic not available
+	// http://www.cplusplus.com/doc/tutorial/pointers/#arithmetics
+	p := Vertex{1,2}
+	q := &p
+	q.X = 1e9
+	fmt.Println(p)
+
+	// new function
+	// "allocates zero type value and returns pointer to it
+	h := new(Vertex)
+	fmt.Println(h)
+	h.X, h.Y = 11, 9
+	fmt.Println(h)
+
+	// arrays, which cannot be resized
+	var aa [2]string
+	aa[0] = "Hello"
+	aa[1] = "World"
+	fmt.Println(aa[0], aa[1])
+	fmt.Println(aa)
+
+	// slices - these are important
+	ka := []int{2,3,5,7,11,13}
+	fmt.Println("ka == ", ka)
+	for i := 0; i < len(ka); i++ {
+		fmt.Printf("ka[%d] == %d\n", i, ka[i])
+	}
+
+	// slicing slices
+	// the new slice points to the same array
+	kk := ka[0:3]
+	kk[0] = 100
+	fmt.Println("kk has mutable access to ka, ka[0] = ",ka[0])
+	// slicing actions		
+	fmt.Println("ka[1:4] == ", ka[1:4])
+
 }
