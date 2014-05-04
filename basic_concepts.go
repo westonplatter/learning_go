@@ -33,7 +33,6 @@ func split(sum int) (x, y int) {
 
 func needInt(x int) int { return x*10 + 1 }
 
-
 func needFloat(x float64) float64 {
 	return x * 0.1
 }
@@ -137,17 +136,17 @@ func main() {
 	fmt.Println(Sqrt(2))
 
 	// instantiate a struct
-	fmt.Println(Vertex{1,2})
+	fmt.Println(Vertex{1, 2})
 
 	// struct values are mutable
-	v := Vertex{1,2}
+	v := Vertex{1, 2}
 	v.X = 4
 	fmt.Println(v.X)
 
 	// struct pointers
 	// pointer arithmetic not available
 	// http://www.cplusplus.com/doc/tutorial/pointers/#arithmetics
-	p := Vertex{1,2}
+	p := Vertex{1, 2}
 	q := &p
 	q.X = 1e9
 	fmt.Println(p)
@@ -167,7 +166,7 @@ func main() {
 	fmt.Println(aa)
 
 	// slices - these are important
-	ka := []int{2,3,5,7,11,13}
+	ka := []int{2, 3, 5, 7, 11, 13}
 	fmt.Println("ka == ", ka)
 	for i := 0; i < len(ka); i++ {
 		fmt.Printf("ka[%d] == %d\n", i, ka[i])
@@ -177,8 +176,8 @@ func main() {
 	// the new slice points to the same array
 	kk := ka[0:3]
 	kk[0] = 100
-	fmt.Println("kk has mutable access to ka, ka[0] = ",ka[0])
-	// slicing actions		
+	fmt.Println("kk has mutable access to ka, ka[0] = ", ka[0])
+	// slicing actions
 	fmt.Println("ka[1:4] == ", ka[1:4])
 
 	// making slices
@@ -190,9 +189,9 @@ func main() {
 	printSlice("ccc", ccc)
 	ddd := ccc[2:5]
 	printSlice("ddd", ddd)
-	
+
 	// range
-	var pow = []int{1,2,4,8,16,32,64,128}
+	var pow = []int{1, 2, 4, 8, 16, 32, 64, 128}
 	for i, v := range pow {
 		fmt.Printf("2**%d = %d\n", i, v)
 	}
@@ -203,7 +202,7 @@ func main() {
 	for _, value := range pow {
 		fmt.Printf("%d\n", value)
 	}
-	
+
 	// closures
 	fmt.Println("-------")
 	pos, neg := adder(), adder()
@@ -226,8 +225,8 @@ func main() {
 }
 
 func fib() func() int {
-	
-	// f(n) = fibanocci(n) 
+
+	// f(n) = fibanocci(n)
 	// f(n) = f(n_1) + f(n_2)
 
 	n_1 := 0
