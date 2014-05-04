@@ -11,9 +11,6 @@ const (
 	Small = Big >> 99
 )
 
-//var i, j int = 1,2
-//var c, python, java = true, false, "no!"
-
 func add(x int, y int) int {
 	return x + y
 }
@@ -22,10 +19,12 @@ func subtract(x, y int) int {
 	return x - y
 }
 
+// return 2 values
 func swap(x, y string) (string, string) {
 	return y, x
 }
 
+// implicitly return all variables
 func split(sum int) (x, y int) {
 	x = sum * 4 / 9
 	y = sum - x
@@ -33,10 +32,13 @@ func split(sum int) (x, y int) {
 }
 
 func needInt(x int) int { return x*10 + 1 }
+
+
 func needFloat(x float64) float64 {
 	return x * 0.1
 }
 
+// variable availability within closures
 func pow(x, n, lim float64) float64 {
 	if v := math.Pow(x, n); v < lim {
 		return v
@@ -63,6 +65,7 @@ func Sqrt(x float64) float64 {
 	return z
 }
 
+// creating types
 type Vertex struct {
 	X, Y int
 }
@@ -178,4 +181,75 @@ func main() {
 	// slicing actions		
 	fmt.Println("ka[1:4] == ", ka[1:4])
 
+	// making slices
+	aaa := make([]int, 5)
+	printSlice("aaa", aaa)
+	bbb := make([]int, 0, 5)
+	printSlice("bbb", bbb)
+	ccc := bbb[:2]
+	printSlice("ccc", ccc)
+	ddd := ccc[2:5]
+	printSlice("ddd", ddd)
+	
+	// range
+	var pow = []int{1,2,4,8,16,32,64,128}
+	for i, v := range pow {
+		fmt.Printf("2**%d = %d\n", i, v)
+	}
+
+	for i := range pow {
+		pow[i] = 1 << uint(i)
+	}
+	for _, value := range pow {
+		fmt.Printf("%d\n", value)
+	}
+	
+	// closures
+	fmt.Println("-------")
+	pos, neg := adder(), adder()
+
+	for i := 0; i < 10; i++ {
+		fmt.Println(i)
+		fmt.Println(
+			pos(i),
+			neg(-2*i),
+		)
+	}
+
+	// fibonacci closure
+	fmt.Println("-----\nfibonacci sequence via closures")
+	f := fib()
+	for i := 0; i < 10; i++ {
+		fmt.Println(f())
+	}
+
+}
+
+func fib() func() int {
+	
+	// f(n) = fibanocci(n) 
+	// f(n) = f(n_1) + f(n_2)
+
+	n_1 := 0
+	n_2 := 1
+
+	return func() int {
+		n_0 := n_1
+		n_1 = n_2
+		n_2 = n_0 + n_1
+
+		return n_0
+	}
+}
+
+func adder() func(int) int {
+	sum := 0
+	return func(x int) int {
+		sum += x
+		return sum
+	}
+}
+
+func printSlice(s string, x []int) {
+	fmt.Printf("%s len=%d cap%d %v\n", s, len(x), cap(x), x)
 }
