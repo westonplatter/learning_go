@@ -3,36 +3,65 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 )
 
 var workers int = 5
-var resources = []int{0, 0, 0, 0, 0}
-var load = []int{0, 0, 0, 0, 0}
+var number_of_simulations = 100
 
-var time_interval_request time.Duration = 2.0 * time.Millisecond
-var time_interval_work time.Duration = 3.0 * time.Millisecond
+var resources = make([]int, workers)
+var load = make([]int, workers)
+
+func random_duration() time.Duration {
+	r := rand.Float64() * 20.0
+	d := time.Duration(r)
+	t := d * time.Millisecond
+	return t
+}
 
 func main() {
-	for i := 0; i < 10; i++ {
-		worker := choose_worker(workers)
-		can_work := resources_available(worker)
-		if can_work {
-			go async_work(worker)
-		} else {
-			fmt.Println(worker, "- blocked")
-		}
+	rand.Seed(time.Now().UTC().UnixNano())
 
-		time.Sleep(time_interval_request)
+	m := new(sync.Mutex)
+	c := make(chan int)
+
+	for i := 0; i < number_of_simulations; i++ {
+		go check_and_work(c, *m)
+		c <- select_worker(workers)
+		time.Sleep(random_duration())
 	}
-	fmt.Println("done")
 
 	report()
 }
 
-func choose_worker(workers int) int {
+func select_worker(workers int) int {
+	// TODO
+	// weight selection so distribution is not normalized
 	worker := rand.Intn(workers)
+
+	// provide Proportional, Integral, and Derivative correction
+
 	return worker
+}
+
+func check_and_work(c chan int, m sync.Mutex) {
+	worker := <-c
+
+	m.Lock()
+	can_work := resources_available(worker)
+
+	if can_work {
+		reserve(worker)
+		m.Unlock()
+
+		work(worker)
+
+		m.Lock()
+		free(worker)
+	}
+
+	m.Unlock()
 }
 
 func resources_available(worker int) bool {
@@ -46,22 +75,25 @@ func resources_available(worker int) bool {
 	}
 }
 
-func async_work(worker int) {
-	fmt.Println(worker, "+ working")
-
+func reserve(worker int) {
 	left := left(worker)
 	right := right(worker)
 
-	// reserve resources
 	resources[left] = 1
 	resources[right] = 1
-	// work
-	time.Sleep(time_interval_work)
-	// record metrics
-	load[worker] += 1
-	// put resources back
+}
+
+func free(worker int) {
+	left := left(worker)
+	right := right(worker)
+
 	resources[left] = 0
 	resources[right] = 0
+}
+
+func work(worker int) {
+	time.Sleep(random_duration())
+	load[worker] += 1
 }
 
 func left(i int) int {
@@ -82,7 +114,7 @@ func report() {
 		total_jobs += worker_jobs
 	}
 
-	load_percent := []float64{0, 0, 0, 0, 0}
+	load_percent := make([]float64, workers)
 	for i := 0; i < len(load); i++ {
 		total_jobs := float64(total_jobs)
 		worker_jobs := float64(load[i])
@@ -91,6 +123,8 @@ func report() {
 		load_percent[i] = worker_percent
 	}
 
-	fmt.Println("total_jobs", total_jobs)
-	fmt.Println("job distribution", load_percent)
+	fmt.Println("Jobs", number_of_simulations)
+	fmt.Println("- block", number_of_simulations-total_jobs)
+	fmt.Println("- completed", total_jobs)
+	fmt.Println("- distribution", load_percent)
 }
