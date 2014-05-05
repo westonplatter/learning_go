@@ -3,21 +3,27 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
-var workers int = 2
-var resources = []int{0}
-var load = []int{0, 0}
+var workers int = 5
+var resources = []int{0, 0, 0, 0, 0}
+var load = []int{0, 0, 0, 0, 0}
+
+var time_interval_request time.Duration = 2.0 * time.Millisecond
+var time_interval_work time.Duration = 3.0 * time.Millisecond
 
 func main() {
-	fmt.Println("start")
-
 	for i := 0; i < 10; i++ {
 		worker := choose_worker(workers)
 		can_work := resources_available(worker)
 		if can_work {
-			work(worker)
+			go async_work(worker)
+		} else {
+			fmt.Println(worker, "- blocked")
 		}
+
+		time.Sleep(time_interval_request)
 	}
 	fmt.Println("done")
 
@@ -30,17 +36,44 @@ func choose_worker(workers int) int {
 }
 
 func resources_available(worker int) bool {
-	if resources[0] == 0 {
+	left := left(worker)
+	right := right(worker)
+
+	if resources[left] == 0 && resources[right] == 0 {
 		return true
 	} else {
 		return false
 	}
 }
 
-func work(worker int) {
-	resources[0] = 1
+func async_work(worker int) {
+	fmt.Println(worker, "+ working")
+
+	left := left(worker)
+	right := right(worker)
+
+	// reserve resources
+	resources[left] = 1
+	resources[right] = 1
+	// work
+	time.Sleep(time_interval_work)
+	// record metrics
 	load[worker] += 1
-	resources[0] = 0
+	// put resources back
+	resources[left] = 0
+	resources[right] = 0
+}
+
+func left(i int) int {
+	return i
+}
+
+func right(i int) int {
+	right := i - 1
+	if right == -1 {
+		right = workers - 1
+	}
+	return right
 }
 
 func report() {
@@ -49,7 +82,7 @@ func report() {
 		total_jobs += worker_jobs
 	}
 
-	load_percent := []float64{0, 0}
+	load_percent := []float64{0, 0, 0, 0, 0}
 	for i := 0; i < len(load); i++ {
 		total_jobs := float64(total_jobs)
 		worker_jobs := float64(load[i])
