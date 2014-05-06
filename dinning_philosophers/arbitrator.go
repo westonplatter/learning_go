@@ -1,8 +1,42 @@
+/*
+
+Copyright (c) 2014, Weston Platter, BSD-3
+
+Problem
+Dinning Philosophers
+http://en.wikipedia.org/wiki/Dining_philosophers_problem
+
+Solution
+Self Correcting Arbitrator
+
+The solution implements an "Arbitrator" resource management
+pattern. When a worker wants to work, it checks if resources
+are available, if they are the worker reserves the resources,
+completes its work, and then releases the resources. If
+resources are not available, the worker unit stops work
+execution.
+
+The resource availability state is tracked in a global
+variable, `resources`. Workers lock the mutex before reading
+and writing to the `resources` variable. This is the arbitrator
+pattern.
+
+The solution is also self correcting. By default, the
+simulation favors workers that are in the first half of the
+worker population (see the `SelectWorker` function). In order
+to ensure work is evenly distributed across the worker
+population, the `SelectWorker` function proportionally
+reassigns work to lesser worked worker units. While the
+solution provides a simple proportional system control,
+solution, a full PID control system could be implemented
+to account for unpredictable and rapidly changing work loads.
+
+*/
+
 package main
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"sync"
 	"time"
@@ -10,7 +44,7 @@ import (
 
 // determining factors for simulation
 
-var workers int = 10
+var workers int = 5
 var number_of_simulations = 100
 var random_duration_range float64 = 5.0
 
@@ -27,53 +61,58 @@ func main() {
 
 	for i := 0; i < number_of_simulations; i++ {
 		time.Sleep(1.0 * time.Millisecond)
-		go check_and_work(c, *m)
-		c <- select_worker(workers)
+		go ChecKAndWork(c, *m)
+		c <- SelectWorker(workers)
 	}
 
-	report()
+	Report()
 }
 
-func check_and_work(c chan int, m sync.Mutex) {
+func ChecKAndWork(c chan int, m sync.Mutex) {
 	worker := <-c
 
-	// lock and unlock the Mutex to ensure 1 and only 1 "goroutinue"
-	// accesses the shared `resources` variable at a time.
+	// lock and unlock the Mutex to ensure 1 and only 1
+	// "goroutinue" accesses the shared `resources`
+	// variable at a time.
 
 	m.Lock()
-	can_work := resources_available(worker)
+	can_work := ResourcesAvailable(worker)
 
 	if can_work {
-		reserve(worker)
+		Reserve(worker)
 		m.Unlock()
 
-		work(worker)
+		Work(worker)
 
 		m.Lock()
-		free(worker)
+		Free(worker)
 	}
 
 	m.Unlock()
 }
 
-func select_worker(workers int) int {
+func SelectWorker(workers int) int {
 
 	// intentionally weight the distribution of random numbers so first
 	// half of worker units receive all the work completion requests
 	max := workers - int(workers/2)
 	worker := rand.Intn(max)
 
-	if completed_more_than(0.35) {
+	if CompletedMoreThan(0.35) {
 		// after 35% of all potential jobs have been completed,
 		// re-select the worker to be a worker with less
 		// than or equal to the min number of jobs completed
-		worker = min_worker()
+
+		// the choice of 35% is abitrary. This is offset from
+		// 0% percent so that there's a sufficient data to use
+		// to make work reassignment decisions
+		worker = MinWorker(load)
 	}
 
 	return worker
 }
 
-func min_worker() int {
+func MinWorker(load []int) int {
 	min := load[0]
 	worker := 0
 
@@ -87,13 +126,13 @@ func min_worker() int {
 	return worker
 }
 
-func completed_more_than(percent float64) bool {
-	return percent_done() > percent
+func CompletedMoreThan(percent float64) bool {
+	return PercentDone() > percent
 }
 
-func resources_available(worker int) bool {
-	left := left(worker)
-	right := right(worker)
+func ResourcesAvailable(worker int) bool {
+	left := Left(worker)
+	right := Right(worker, workers)
 
 	if resources[left] == 0 && resources[right] == 0 {
 		return true
@@ -102,32 +141,32 @@ func resources_available(worker int) bool {
 	}
 }
 
-func reserve(worker int) {
-	left := left(worker)
-	right := right(worker)
+func Reserve(worker int) {
+	left := Left(worker)
+	right := Right(worker, workers)
 
 	resources[left] = 1
 	resources[right] = 1
 }
 
-func free(worker int) {
-	left := left(worker)
-	right := right(worker)
+func Free(worker int) {
+	left := Left(worker)
+	right := Right(worker, workers)
 
 	resources[left] = 0
 	resources[right] = 0
 }
 
-func work(worker int) {
-	time.Sleep(random_duration())
+func Work(worker int) {
+	time.Sleep(RandomDuration())
 	load[worker] += 1
 }
 
-func left(i int) int {
+func Left(i int) int {
 	return i
 }
 
-func right(i int) int {
+func Right(i int, workers int) int {
 	right := i - 1
 	if right == -1 {
 		right = workers - 1
@@ -135,14 +174,14 @@ func right(i int) int {
 	return right
 }
 
-func random_duration() time.Duration {
+func RandomDuration() time.Duration {
 	r := rand.Float64() * random_duration_range
 	d := time.Duration(r)
 	t := d * time.Millisecond
 	return t
 }
 
-func report() {
+func Report() {
 	total_jobs := 0
 	for _, worker_jobs := range load {
 		total_jobs += worker_jobs
@@ -159,21 +198,25 @@ func report() {
 	}
 
 	fmt.Println("Jobs", number_of_simulations)
-	fmt.Println("- standard_deviation", standard_deviation())
 	fmt.Println("- blocked", number_of_simulations-total_jobs)
 	fmt.Println("- completed", total_jobs)
-	fmt.Println("- distribution", load_percent)
+	
+	fmt.Println("\nworker percents")
+	
+	for i := 0; i < len(load_percent); i++ {
+		fmt.Printf("- %v = %.2f\n", i, load_percent[i])
+	}
 }
 
 // simple data/metrics functions
 
-func percent_done() float64 {
-	t := total_completed()
+func PercentDone() float64 {
+	t := TotalCompleted()
 	num := float64(number_of_simulations)
 	return t / num
 }
 
-func total_completed() float64 {
+func TotalCompleted() float64 {
 	total := 0.0
 
 	for _, value := range load {
@@ -183,15 +226,3 @@ func total_completed() float64 {
 	return total
 }
 
-func standard_deviation() float64 {
-	total_completed := total_completed()
-	numerator := 0.0
-
-	for _, value := range load {
-		worker_jobs := float64(value)
-		worker_percent := worker_jobs / total_completed
-		numerator += worker_percent
-	}
-
-	return math.Sqrt(numerator / total_completed)
-}
